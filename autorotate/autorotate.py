@@ -15,17 +15,34 @@ def rotate_screen(screen, orientation):
     elif orientation == 'bottom-up':
         rotation = 'inverted'
 
-    subprocess.call(["xrandr", "--output", screen, "--rotate", rotation])
+    subprocess.call(['xrandr', '--output', screen, '--rotate', rotation])
+
+
+# rotate touchscreen using xinput
+def rotate_touchscreen(touchscreen, orientation):
+    rotation = ['1', '0', '0', '0', '1', '0', '0', '0', '1']
+    if orientation == 'left-up':
+        rotation = ['0', '-1', '1', '1', '0', '0', '0', '0', '1']
+    elif orientation == 'right-up':
+        rotation = ['0', '1', '0', '-1', '0', '1', '0', '0', '1']
+    elif orientation == 'bottom-up':
+        rotation = ['-1', '0', '1', '0', '-1', '1', '0', '0', '1']
+
+    cmd = ['xinput', 'set-prop', touchscreen, 'Coordinate Transformation Matrix']
+    subprocess.call(cmd + rotation)
 
 
 def properties_changed_handler(interface, changed, invalidated):
     if 'AccelerometerOrientation' in changed:
         rotate_screen(args.screen, changed['AccelerometerOrientation'])
+        if args.touchscreen:
+            rotate_touchscreen(args.touchscreen, changed['AccelerometerOrientation'])
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Rotates the screen using Xrandr and iio-sensors-proxy')
-    parser.add_argument('screen', help='sets the screen that should be rotated')
+    parser.add_argument('screen', help='set the screen that should be rotated')
+    parser.add_argument('--touchscreen', help='set the device name of the input device to rotate ')
     args = parser.parse_args()
 
     DBusGMainLoop(set_as_default=True)
